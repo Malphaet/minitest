@@ -13,38 +13,56 @@ class testGroup(object):
         self.prefix=prefix
         if self.t==None:
             self.t=Terminal()
+        self.results=[]
+        self.sucess_text= self.t.green("sucess")
+        self.failure_text=self.t.bright_red("failure")
 
     def addTest(self,testUnit):
         self._tests.append(testUnit)
 
     def test(self):
         "Execute all tests, some options might exist at some point"
-        sucess,total=0,0
+        module_sucess,module_total=0,0
+        oldprefix=self.prefix
         print self.prefix+"Beggining test group "+self.pretty_group(self.name)
+        self.prefix+=" * "
         for test in self._tests:
-            print self.prefix+"Testing"+ self.pretty_test(name)
-            sucess,total=self.print_result(test.test())
-        print self.prefix+"Test finished for test group "+self.pretty_group(self.name)+" "+self.pretty_succesrate(sucess,total)
+            sucess,total,failures=self.print_result(test.test())
+            print self.prefix+"testing "+ self.pretty_test(test.name)+" .... "+self.pretty_succesrate(sucess,total)
+            if sucess==total:
+                module_sucess+=1
+            module_total+=1
+            for failure in failures:
+                print self.prefix+"  > "+failure
+
+        self.prefix=oldprefix
+        print self.prefix+"Test finished for test group "+self.pretty_group(self.name)+" "+self.pretty_succesrate(module_sucess,module_total)
 
     def print_result(self,table):
         "Get the array of sucess/failures and print according to the options (still none yet)"
         total=len(table)
         sucess=0
+        array_of_failures=[]
+        nb=0
         for item,status,infos in table:
+            nb+=1
             if status:
                 sucess+=1
-            print self.prefix+item+"..."+self.pretty_status(status)+self.pretty_info(infos)
-        return sucess,total
+            else:
+                array_of_failures.append(self.pretty_status(status)+" "+"line "+str(nb)+" : "+item.__name__.strip("<>")+" .... "+self.pretty_info(infos))
+        return sucess,total,array_of_failures
 
     def pretty_info(self,infos):
         "Prettyfy the additional infos"
-        return self.t.italic(infos)
+        if infos=="":
+            return ""
+        return self.t.italic(" ("+str(infos)+")")
 
     def pretty_status(self,status):
         "Prettyfy the status of the test"
         if status:
-            return self.t.green("ok")
-        return self.t.red("fail")
+            return self.sucess_text
+        return self.failure_text
 
     def pretty_group(self,name):
         "Prettify the name of the testGroup"
@@ -52,14 +70,16 @@ class testGroup(object):
 
     def pretty_test(self,test):
         "Prettify the name of the testUnit"
-        return self.t.underline(test)
+        return test
 
     def pretty_succesrate(self,sucess,total):
         if sucess==total:
             wrap=self.t.green
+            txt=self.sucess_text
         else:
-            wrap=self.t.red
-        return wrap("["+str(sucess)+"/"+str(total)+"]")
+            wrap=self.t.bright_red
+            txt=self.failure_text
+        return wrap(txt+" ["+str(sucess)+"/"+str(total)+"]")
 
 class testUnit(object):
     """A very basic test unit, only test() is mandatory
@@ -72,7 +92,7 @@ class testUnit(object):
         "The name if the name of the group of test executed"
         self._tests=[]
         self.name=name
-        self.test=[]
+        self.results=[]
 
     def addTest(self,test):
         "Add a function to the test unit"
@@ -80,17 +100,31 @@ class testUnit(object):
 
     def test(self):
         "Execute all tests"
+        self.results=[]
         for test in self._tests:
             try:
                 test()
-                self.results.append(test,True,'')
-            except as e:
-                self.results.append(test,False,e)
-
+                self.results.append([test,True,''])
+            except Exception as e:
+                self.results.append([test,False,e])
+        return self.results
 
 if __name__ == '__main__':
     term=Terminal()
     mainClasses=testGroup("Main Classes",term)
     #mainClasses.addTest()
     #mainClasses.test()
-    testClasses=testUnit("Main classes")
+    mainTest=testUnit("basic_inputs")
+    mainTest.addTest(lambda :True)
+    mainTest.addTest(lambda :True)
+    lambdaTest=testUnit("lambda")
+    lambdaTest.addTest(lambda x:True)
+    lambdaTest.addTest(lambda :True)
+
+    mainTest.test()
+    lambdaTest.test()
+
+    mainClasses.addTest(lambdaTest)
+    mainClasses.addTest(mainTest)
+
+    mainClasses.test()
