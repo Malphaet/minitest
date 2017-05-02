@@ -24,8 +24,10 @@ class testGroup(object):
         "Execute all tests, some options might exist at some point"
         module_sucess,module_total=0,0
         oldprefix=self.prefix
-        print self.prefix+"Beggining test group "+self.pretty_group(self.name)
-        self.prefix+=" * "
+        print self.prefix+"+ Executing test group "+self.pretty_group(self.name)
+        self.prefix+="| "
+        self.results=[]
+
         for test in self._tests:
             sucess,total,failures=self.print_result(test.test())
             print self.prefix+"testing "+ self.pretty_test(test.name)+" .... "+self.pretty_succesrate(sucess,total)
@@ -33,10 +35,12 @@ class testGroup(object):
                 module_sucess+=1
             module_total+=1
             for failure in failures:
-                print self.prefix+"  > "+failure
-
+                print self.prefix+" * "+failure
+            self.results.append([self,True,""])
         self.prefix=oldprefix
-        print self.prefix+"Test finished for test group "+self.pretty_group(self.name)+" "+self.pretty_succesrate(module_sucess,module_total)
+
+        print self.prefix+"+ Done "+self.pretty_group(self.name)+" "+self.pretty_succesrate(module_sucess,module_total)
+        return self.results
 
     def print_result(self,table):
         "Get the array of sucess/failures and print according to the options (still none yet)"
@@ -44,6 +48,7 @@ class testGroup(object):
         sucess=0
         array_of_failures=[]
         nb=0
+
         for item,status,infos in table:
             nb+=1
             if status:
@@ -112,8 +117,8 @@ class testUnit(object):
 if __name__ == '__main__':
     term=Terminal()
     mainClasses=testGroup("Main Classes",term)
-    #mainClasses.addTest()
-    #mainClasses.test()
+    subclass=testGroup("Subgroup",term,"| ")
+
     mainTest=testUnit("basic_inputs")
     mainTest.addTest(lambda :True)
     mainTest.addTest(lambda :True)
@@ -125,6 +130,7 @@ if __name__ == '__main__':
     lambdaTest.test()
 
     mainClasses.addTest(lambdaTest)
-    mainClasses.addTest(mainTest)
+    subclass.addTest(mainTest)
+    mainClasses.addTest(subclass)
 
     mainClasses.test()
