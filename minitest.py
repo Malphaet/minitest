@@ -3,6 +3,7 @@
 # Copyleft (c) 2016 Cocobug All Rights Reserved.
 
 from blessings import Terminal
+__all__ =["testGroup","testUnit"]
 
 class testGroup(object):
     """TestGroup, group a number of testUnit, exec them and print the results"""
@@ -26,8 +27,8 @@ class testGroup(object):
         "Execute all tests, some options might exist at some point"
         module_sucess,module_total=0,0
 
-        print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
-        print self.prefix+"| Executing test group "+self.pretty_group(self.name)
+        #print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
+        print self.prefix+"+ Executing test group "+self.pretty_group(self.name)
         oldprefix=self.prefix
         self.prefix+="|  "
         self.results=[]
@@ -49,7 +50,7 @@ class testGroup(object):
         self.prefix=oldprefix
 
         print self.pretty_group_result(module_sucess,module_total)
-        print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
+        #print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
         return self.results
 
     def print_result(self,table):
@@ -70,7 +71,7 @@ class testGroup(object):
 
     def pretty_group_result(self,module_sucess,module_total):
         "Prettyfying the result of the batch of tests"
-        bloc=self.prefix+"| Done "
+        bloc=self.prefix+"+ Done "
         return bloc+self.pretty_group(self.name)+self.pretty_dots(bloc,len(self.name))+self.pretty_succesrate(module_sucess,module_total)
 
     def pretty_name(self,item):
