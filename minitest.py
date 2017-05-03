@@ -6,7 +6,7 @@ from blessings import Terminal
 
 class testGroup(object):
     """TestGroup, group a number of testUnit, exec them and print the results"""
-    def __init__(self,name="",terminal=None,prefix="",verbose=False):
+    def __init__(self,name="",terminal=None,prefix="",verbose=False,align=0):
         self._tests=[]
         self.name=name
         self.t=terminal
@@ -17,6 +17,7 @@ class testGroup(object):
         self.sucess_text= self.t.green("sucess")
         self.failure_text=self.t.bright_red("failure")
         self.verbose=verbose
+        self.align=align
 
     def addTest(self,testUnit):
         self._tests.append(testUnit)
@@ -24,9 +25,11 @@ class testGroup(object):
     def test(self):
         "Execute all tests, some options might exist at some point"
         module_sucess,module_total=0,0
+
+        print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
+        print self.prefix+"| Executing test group "+self.pretty_group(self.name)
         oldprefix=self.prefix
-        print self.prefix+"+ Executing test group "+self.pretty_group(self.name)
-        self.prefix+="| "
+        self.prefix+="|  "
         self.results=[]
 
         for test in self._tests:
@@ -35,16 +38,18 @@ class testGroup(object):
             except:
                 sucess,total,failures=self.print_result([])
 
-            print self.prefix+"testing "+ self.pretty_test(test.name)+" .... "+self.pretty_succesrate(sucess,total)
+            print self.pretty_subtests(test.name,sucess,total)
+
             if sucess==total:
                 module_sucess+=1
             module_total+=1
             for failure in failures:
-                print self.prefix+" * "+failure
+                print failure
             self.results.append([self,True,""])
         self.prefix=oldprefix
 
-        print self.prefix+"+ Done "+self.pretty_group(self.name)+" "+self.pretty_succesrate(module_sucess,module_total)
+        print self.pretty_group_result(module_sucess,module_total)
+        print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
         return self.results
 
     def print_result(self,table):
@@ -62,6 +67,12 @@ class testGroup(object):
                 results_array.append(self.pretty_result(status,nb,item,infos))
         return sucess,total,results_array
 
+
+    def pretty_group_result(self,module_sucess,module_total):
+        "Prettyfying the result of the batch of tests"
+        bloc=self.prefix+"| Done "
+        return bloc+self.pretty_group(self.name)+self.pretty_dots(bloc,len(self.name))+self.pretty_succesrate(module_sucess,module_total)
+
     def pretty_name(self,item):
         "Just a pretty way of showing the name of a test"
         try:
@@ -69,9 +80,23 @@ class testGroup(object):
         except:
             return str(item)
 
+    def pretty_subtests(self,name,sucess,total):
+        "Pretty way of showing the result of the group of tests"
+        bloc=self.prefix+"testing "+ self.pretty_test(name)
+        return bloc+self.pretty_dots(bloc)+self.pretty_succesrate(sucess,total)
+
     def pretty_result(self,status,nb,item,infos):
         "Just a pretty way of showing the result of one test"
-        return " ["+str(nb)+"] "+self.pretty_name(item)+" .... "+self.pretty_status(status)+self.pretty_info(infos)
+        bloc=self.prefix+" * "+" ["+str(nb)+"] "+self.pretty_name(item)
+        return bloc+self.pretty_dots(bloc)+self.pretty_status(status)+self.pretty_info(infos)
+
+    def pretty_dots(self,bloc,padding=0):
+        lenbloc=len(bloc)+padding
+        if (self.align>lenbloc+4):
+            dots="."*(self.align-lenbloc)
+        else:
+            dots="...."
+        return dots
 
     def pretty_info(self,infos):
         "Prettyfy the additional infos"
@@ -139,8 +164,8 @@ class testUnit(object):
 
 if __name__ == '__main__':
     term=Terminal()
-    mainClasses=testGroup("Main Classes",term,verbose=True)
-    subclass=testGroup("Subgroup",term,"| ",verbose=True)
+    mainClasses=testGroup("Main Classes",term,verbose=True,align=40)
+    subclass=testGroup("Subgroup",term,"| ",verbose=True,align=40)
 
     mainTest=testUnit("lambda functions")
     mainTest.addTest(lambda :True)
