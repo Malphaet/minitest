@@ -6,7 +6,7 @@ from blessings import Terminal
 
 class testGroup(object):
     """TestGroup, group a number of testUnit, exec them and print the results"""
-    def __init__(self,name="",terminal=None,prefix=""):
+    def __init__(self,name="",terminal=None,prefix="",verbose=False):
         self._tests=[]
         self.name=name
         self.t=terminal
@@ -16,6 +16,7 @@ class testGroup(object):
         self.results=[]
         self.sucess_text= self.t.green("sucess")
         self.failure_text=self.t.bright_red("failure")
+        self.verbose=verbose
 
     def addTest(self,testUnit):
         self._tests.append(testUnit)
@@ -29,7 +30,11 @@ class testGroup(object):
         self.results=[]
 
         for test in self._tests:
-            sucess,total,failures=self.print_result(test.test())
+            try:
+                sucess,total,failures=self.print_result(test.test())
+            except:
+                sucess,total,failures=self.print_result([])
+
             print self.prefix+"testing "+ self.pretty_test(test.name)+" .... "+self.pretty_succesrate(sucess,total)
             if sucess==total:
                 module_sucess+=1
@@ -46,16 +51,27 @@ class testGroup(object):
         "Get the array of sucess/failures and print according to the options (still none yet)"
         total=len(table)
         sucess=0
-        array_of_failures=[]
+        results_array=[]
         nb=0
 
         for item,status,infos in table:
             nb+=1
             if status:
                 sucess+=1
-            else:
-                array_of_failures.append(self.pretty_status(status)+" "+"line "+str(nb)+" : "+item.__name__.strip("<>")+" .... "+self.pretty_info(infos))
-        return sucess,total,array_of_failures
+            if self.verbose or not status:
+                results_array.append(self.pretty_result(status,nb,item,infos))
+        return sucess,total,results_array
+
+    def pretty_name(self,item):
+        "Just a pretty way of showing the name of a test"
+        try:
+            return item.__name__.strip("<>")
+        except:
+            return str(item)
+
+    def pretty_result(self,status,nb,item,infos):
+        "Just a pretty way of showing the result of one test"
+        return " ["+str(nb)+"] "+self.pretty_name(item)+" .... "+self.pretty_status(status)+self.pretty_info(infos)
 
     def pretty_info(self,infos):
         "Prettyfy the additional infos"
@@ -109,22 +125,59 @@ class testUnit(object):
         for test in self._tests:
             try:
                 test()
-                self.results.append([test,True,''])
+                self.addResult(test,True,'')
             except Exception as e:
-                self.results.append([test,False,e])
+                self.addResult(test,False,e)
         return self.results
+
+    def addResult(self,testName,status,info):
+        self.results.append([testName,status,info])
 
 if __name__ == '__main__':
     term=Terminal()
-    mainClasses=testGroup("Main Classes",term)
-    subclass=testGroup("Subgroup",term,"| ")
+    mainClasses=testGroup("Main Classes",term,verbose=True)
+    subclass=testGroup("Subgroup",term,"| ",verbose=True)
 
-    mainTest=testUnit("basic_inputs")
+    mainTest=testUnit("lambda functions")
     mainTest.addTest(lambda :True)
     mainTest.addTest(lambda :True)
-    lambdaTest=testUnit("lambda")
+    lambdaTest=testUnit("incorrect lambdas")
     lambdaTest.addTest(lambda x:True)
-    lambdaTest.addTest(lambda :True)
+    lambdaTest.addTest(lambda x,y:True)
+
+    class newTestUnit(testUnit):
+        """Just a custom test Class"""
+        def __init__(self):
+            super(newTestUnit, self).__init__("custom test")
+
+        def test(self):
+            self.results=[]
+
+            # Now all the customs test happen, and are append to the results
+
+            potatoe=[]
+
+            try:  # You are supposed to fail this step
+                if potatoe[1]==2:
+                    self.addResult("empty_table",False,"Non empty array")
+            except:
+                self.addResult("empty_table",True,"")
+
+            potatoe.append([2]*2) # Not try protected, but could be if a bug was a possibility
+
+            try:
+                goodinit=True
+                for e in potatoe:
+                    if e==3:
+                        goodinit=False
+                        self.addResult("init_table",False,"Wrong elements")
+                if goodinit:
+                    self.addResult("init_table",True,"")
+            except:
+                self.addResult("init_table",False,"???")
+
+            return self.results
+
 
     mainTest.test()
     lambdaTest.test()
@@ -132,5 +185,6 @@ if __name__ == '__main__':
     mainClasses.addTest(lambdaTest)
     subclass.addTest(mainTest)
     mainClasses.addTest(subclass)
+    mainClasses.addTest(newTestUnit())
 
     mainClasses.test()
