@@ -93,10 +93,10 @@ class testGroup(object):
 
     def pretty_dots(self,bloc,padding=0):
         lenbloc=len(bloc)+padding
-        if (self.align>lenbloc+4):
+        if (self.align>lenbloc+2):
             dots="."*(self.align-lenbloc)
         else:
-            dots="...."
+            dots=".."
         return dots
 
     def pretty_info(self,infos):
