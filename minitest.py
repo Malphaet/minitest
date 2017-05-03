@@ -102,6 +102,9 @@ class testGroup(object):
             txt=self.failure_text
         return wrap(txt+" ["+str(sucess)+"/"+str(total)+"]")
 
+    def __str__(self):
+        return self.name
+
 class testUnit(object):
     """A very basic test unit, only test() is mandatory
         test(): should return a list of [function,status,infos]
@@ -132,6 +135,7 @@ class testUnit(object):
 
     def addResult(self,testName,status,info):
         self.results.append([testName,status,info])
+
 
 if __name__ == '__main__':
     term=Terminal()
