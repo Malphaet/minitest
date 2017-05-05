@@ -3,6 +3,8 @@
 # Copyleft (c) 2016 Cocobug All Rights Reserved.
 
 from blessings import Terminal
+import types
+
 __all__ =["testGroup","testUnit"]
 
 class testGroup(object):
@@ -162,6 +164,48 @@ class testUnit(object):
     def addResult(self,testName,status,info):
         self.results.append([testName,status,info])
 
+class simpleTestUnit(testUnit):
+    """Very simple test function, it tries to autodetect tests and add them and batch test them,
+    this is not default behavior and should not be expected from other functions
+    The very usage of this self.currentTest makes the class non embetted effect protected and non-thread-friendly"""
+
+    def __init__(self,name):
+        super(simpleTestUnit, self).__init__(name)
+        self.results=[]
+        self.currentTest=""
+        self.userTests=[]
+        self._simpleTestList=[]
+
+    def addSucess(self):
+        "Mark the sucess of the current test (named in the function by self.currentTest)"
+        self.addResult(self.currentTest,True,"")
+
+    def addFailure(self,msg):
+        "Mark the failure of the current test"
+        self.addResult(self.currentTest,False,msg)
+
+    def test(self):
+        """User can add functions to be tested in userTests,
+            the functions should use self.addSucess() and self.addFailure("") to keep track of the results
+            test() will then proceed to autodetect all other tests"""
+
+        self.results=[]
+        self._simpleTestList=self.userTests[:]
+
+        for method in dir(self):
+            if method.startswith("_test"):
+                method=getattr(self,method)
+                if isinstance(method,types.FunctionType) or isinstance(method,types.MethodType):
+                    self._simpleTestList.append(method)
+
+        try:
+            for fonct in self._simpleTestList:
+                fonct()
+        except Exception as e:
+            self.addFailure(e)
+
+        return self.results
+
 
 if __name__ == '__main__':
     term=Terminal()
@@ -176,7 +220,7 @@ if __name__ == '__main__':
     lambdaTest.addTest(lambda x,y:True)
 
     class newTestUnit(testUnit):
-        """Just a custom test Class"""
+        """Just a custom test Class, simple and easyest ?"""
         def __init__(self):
             super(newTestUnit, self).__init__("custom test")
 
@@ -184,15 +228,12 @@ if __name__ == '__main__':
             self.results=[]
 
             # Now all the customs test happen, and are append to the results
-
             potatoe=[]
-
             try:  # You are supposed to fail this step
                 if potatoe[1]==2:
                     self.addResult("empty_table",False,"Non empty array")
             except:
                 self.addResult("empty_table",True,"")
-
             potatoe.append([2]*2) # Not try protected, but could be if a bug was a possibility
 
             try:
@@ -208,6 +249,29 @@ if __name__ == '__main__':
 
             return self.results
 
+    class anotherTest(simpleTestUnit):
+        """docstring for anotherTest."""
+        def __init__(self):
+            super(anotherTest, self).__init__("YET ANOTHER TEST")
+
+        def _testCustom(self):
+            self.currentTest="testing true"
+            if True:
+                self.addSucess()
+            else:
+                self.addFailure("True is False")
+
+            self.currentTest="additions:simple"
+            if 1+3==4:
+                self.addSucess()
+            else:
+                self.addFailure("1+3 != 4")
+
+            self.currentTest="error"
+            if False:
+                self.addSucess()
+            else:
+                self.addFailure("Supposed to fail")
 
     mainTest.test()
     lambdaTest.test()
@@ -216,5 +280,5 @@ if __name__ == '__main__':
     subclass.addTest(mainTest)
     mainClasses.addTest(subclass)
     mainClasses.addTest(newTestUnit())
-
+    mainClasses.addTest(anotherTest())
     mainClasses.test()
