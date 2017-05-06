@@ -7,7 +7,7 @@ import types,string
 
 __all__ =["testGroup","testUnit"]
 
-SUCESS_STATUS=1
+SUCCESS_STATUS=1
 FAILURE_STATUS=2
 WARNING_STATUS=4
 CRITICAL_STATUS=8
@@ -25,7 +25,7 @@ class testGroup(object):
         if self.t==None:
             self.t=Terminal()
         self.results=[]
-        self.sucess_text= self.t.green("sucess")
+        self.success_text= self.t.green("success")
         self.failure_text=self.t.bright_red("failure")
         self.warning_text=self.t.bright_yellow("warning")
         self.critical_text=self.t.bold_bright_red("critical")
@@ -38,8 +38,14 @@ class testGroup(object):
 
     def test(self):
         "Execute all tests, some options might exist at some point"
-        module_sucess,module_total=0,0
-
+        module_success,module_total=0,0
+        status_modules={
+            "success":0,
+            "total":0,
+            "warning":0,
+            "critical":0,
+            "failure":0
+        }
         print(self.prefix+"+ Executing test group "+self.pretty_group(self.name))
         oldprefix=self.prefix
         self.prefix+="|  "
@@ -47,43 +53,54 @@ class testGroup(object):
 
         for test in self._tests:
             try:
-                sucess,total,failures=self.print_result(test.test())
+                list_status,total,log_results=self.print_result(test.test())
             except:
-                sucess,total,failures=self.print_result([])
+                list_status,total,log_results=self.print_result([])
 
-            print(self.pretty_subtests(test.name,sucess,total))
+            print(self.pretty_subtests(test.name,list_status,total))
 
-            if sucess==total:
-                module_sucess+=1
-            module_total+=1
-            for failure in failures:
-                print(failure)
-            self.results.append([self,SUCESS_STATUS,""])
+            if list_status["success"]+list_status["warning"]==total:
+                status_modules["success"]+=1
+            status_modules["total"]+=1
+            for log in log_results:
+                print(log)
+            self.results.append([self,SUCCESS_STATUS,""])
         self.prefix=oldprefix
 
-        print(self.pretty_group_result(module_sucess,module_total))
+        print(self.pretty_group_result(status_modules,status_modules["total"]))
         return self.results
 
     def print_result(self,table):
-        "Get the array of sucess/failures and print according to the options (still none yet)"
+        "Get the array of success/failures and print according to the options (still none yet)"
         total=len(table)
-        sucess=0
+        success=0
         results_array=[]
         nb=0
-
+        list_status={
+            "success":0,
+            "failure":0,
+            "warning":0,
+            "critical":0
+        }
         for item,status,infos in table:
             nb+=1
-            if status:
-                sucess+=1
-            if self.verbose or not status:
+            if status==SUCCESS_STATUS:
+                list_status["success"]+=1
+            elif status==WARNING_STATUS:
+                list_status["warnings"]+=1
+            elif status==CRITICAL_STATUS:
+                list_status["critical"]+=1
+            else:
+                list_status["failure"]+=1
+            if self.verbose or status!=SUCCESS_STATUS:
                 results_array.append(self.pretty_result(status,nb,item,infos))
-        return sucess,total,results_array
+        return list_status,total,results_array
 
 
-    def pretty_group_result(self,module_sucess,module_total):
+    def pretty_group_result(self,module_status,total):
         "Prettyfying the result of the batch of tests"
         bloc=self.prefix+"+ Done "
-        return bloc+self.pretty_group(self.name)+self.pretty_dots(bloc,len(self.name))+self.pretty_succesrate(module_sucess,module_total)
+        return bloc+self.pretty_group(self.name)+self.pretty_dots(bloc,len(self.name))+self.pretty_successrate(module_status,total)
 
     def pretty_name(self,item):
         "Just a pretty way of showing the name of a test"
@@ -92,15 +109,19 @@ class testGroup(object):
         except:
             return str(item)
 
-    def pretty_subtests(self,name,sucess,total):
+    def pretty_subtests(self,name,success,total):
         "Pretty way of showing the result of the group of tests"
         bloc=self.prefix+"testing "+ self.pretty_test(name)
-        return bloc+self.pretty_dots(bloc)+self.pretty_succesrate(sucess,total)
+        return bloc+self.pretty_dots(bloc)+self.pretty_successrate(success,total)
 
     def pretty_result(self,status,nb,item,infos):
         "Just a pretty way of showing the result of one test"
         bloc=self.prefix+" * "+" ["+str(nb)+"] "+self.pretty_name(item)
-        return bloc+self.pretty_dots(bloc)+self.pretty_status(status)+self.pretty_info(infos)
+        if status==CRITICAL_STATUS:
+            pbloc=self.prefix+" * "+" ["+str(nb)+"] "+self.t.bold_bright_red(self.pretty_name(item))
+        else:
+            pbloc=bloc
+        return pbloc+self.pretty_dots(bloc)+self.pretty_status(status)+self.pretty_info(infos)
 
     def pretty_dots(self,bloc,padding=0):
         lenbloc=len(bloc)+padding
@@ -118,8 +139,8 @@ class testGroup(object):
 
     def pretty_status(self,status):
         "Prettyfy the status of the test"
-        if status==SUCESS_STATUS:
-            return self.sucess_text
+        if status==SUCCESS_STATUS:
+            return self.success_text
         elif status==FAILURE_STATUS:
             return self.failure_text
         elif status==WARNING_STATUS:
@@ -135,14 +156,22 @@ class testGroup(object):
         "Prettify the name of the testUnit"
         return test
 
-    def pretty_succesrate(self,sucess,total):
-        if sucess==total:
+    def pretty_successrate(self,success,total):
+        warnings=""
+        if success["success"]==total:
             wrap=self.t.green
-            txt=self.sucess_text
+            txt=self.success_text
+        elif success["success"]+success["warning"]==total:
+            warp=self.t.yellow
+            txt=self.warning_text
+            warnings=" ({} warnings".format(str(success["warnings"]))
+        elif success["critical"]!=0:
+            warp=self.t.white_on_red
+            text=self.critical_text
         else:
             wrap=self.t.bright_red
             txt=self.failure_text
-        return wrap(txt+" ["+str(sucess)+"/"+str(total)+"]")
+        return wrap(txt+" ["+str(success["success"]+success["warning"])+"/"+str(total)+"]"+warnings)
 
     def __str__(self):
         return self.name
@@ -170,7 +199,7 @@ class testUnit(object):
         for test in self._tests:
             try:
                 test()
-                self.addResult(test,SUCESS_STATUS,'')
+                self.addResult(test,SUCCESS_STATUS,'')
             except Exception as e:
                 self.addResult(test,FAILURE_STATUS,e)
         return self.results
@@ -182,7 +211,7 @@ class simpleTestUnit(testUnit):
     """Very simple test function, it tries to autodetect tests and add them and batch test them,
     this is not default behavior and should not be expected from other functions
     The very usage of this self.list_ongoing_tests makes the class non embetted effect protected and non-thread-friendly
-    Note that using list_ongoing_tests and addResult together can lead to unpredictable results, use addSucess and addFailure instead"""
+    Note that using list_ongoing_tests and addResult together can lead to unpredictable results, use addSuccess and addFailure instead"""
 
     def __init__(self,name):
         super(simpleTestUnit, self).__init__(name)
@@ -202,17 +231,23 @@ class simpleTestUnit(testUnit):
             return self.list_ongoing_tests.append(name)
 
 
-    def addSucess(self):
-        "Mark the sucess of the current test (named in the function by self.currentTest)"
-        self.addResult(self.currentTest(),SUCESS_STATUS,"")
+    def addSuccess(self):
+        "Mark the success of the current test (named in the function by self.currentTest)"
+        self.addResult(self.currentTest(),SUCCESS_STATUS,"")
 
     def addFailure(self,msg):
         "Mark the failure of the current test"
         self.addResult(self.currentTest(),FAILURE_STATUS,msg)
 
+    def addCritical(self,name,msg):
+        self.addResult(name,CRITICAL_STATUS,msg)
+
+    def addWarning(self,msg=""):
+        self.addResult(self.currentTest(),WARNING_STATUS,msg)
+
     def test(self):
         """User can add functions to be tested in userTests,
-            the functions should use self.addSucess() and self.addFailure("") to keep track of the results
+            the functions should use self.addSuccess() and self.addFailure("") to keep track of the results
             test() will then proceed to autodetect all other tests"""
 
         self.results=[]
@@ -228,7 +263,7 @@ class simpleTestUnit(testUnit):
             for fonct in self._simpleTestList:
                 fonct()
         except testCoreOutOfTests:
-            self.addResult("core:critical",CRITICAL_STATUS,"a fatal error occured in test generation line")
+            self.addCritical("core:critical","a fatal error occured in test generation line")
         except Exception as e:
             self.addFailure(e)
 
@@ -261,7 +296,7 @@ if __name__ == '__main__':
                 if potatoe[1]==2:
                     self.addResult("empty_table",self.FAILURE_STATUS,"Non empty array")
             except:
-                self.addResult("empty_table",SUCESS_STATUS,"")
+                self.addResult("empty_table",SUCCESS_STATUS,"")
             potatoe.append([2]*2) # Not try protected, but could be if a bug was a possibility
 
             try:
@@ -271,7 +306,7 @@ if __name__ == '__main__':
                         goodinit=False
                         self.addResult("init_table",FAILURE_STATUS,"Wrong elements")
                 if goodinit:
-                    self.addResult("init_table",SUCESS_STATUS,"")
+                    self.addResult("init_table",SUCCESS_STATUS,"")
             except:
                 self.addResult("init_table",FAILURE_STATUS,"???")
 
@@ -285,19 +320,19 @@ if __name__ == '__main__':
         def _testCustom(self):
             self.currentTest("testing true")
             if True:
-                self.addSucess()
+                self.addSuccess()
             else:
                 self.addFailure("True is False")
 
             self.currentTest("additions:simple")
             if 1+3==4:
-                self.addSucess()
+                self.addSuccess()
             else:
                 self.addFailure("1+3 != 4")
 
             self.currentTest("error")
             if False:
-                self.addSucess()
+                self.addSuccess()
             else:
                 self.addFailure("Supposed to fail")
 
