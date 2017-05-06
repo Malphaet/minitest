@@ -271,13 +271,14 @@ class simpleTestUnit(testUnit):
             if len(self.list_ongoing_tests)>0:
                 self.addFailure(e)
             else:
-                self.criticalTraceback()
+                #self.criticalTraceback() #This is an arguable choice
+                self.addResult("minitest.py:error",CRITICAL_STATUS,e)
         return self.results
 
     def criticalTraceback(self):
         exc,funct,tb=sys.exc_info()
         code=tb.tb_frame.f_code
-        self.addCritical("core:critical","fatal error {} line {} ({}@{})".format(exc.__name__,code.co_firstlineno,code.co_name,code.co_filename))
+        self.addCritical("minitest.py:critical","fatal error {} line {} ({}@{})".format(exc.__name__,code.co_firstlineno,code.co_name,code.co_filename))
         # #print(traceback.extract_stack()[0])
         # # print(stack.name)
         # for stack in traceback.extract_stack():
