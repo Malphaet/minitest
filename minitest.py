@@ -3,7 +3,7 @@
 # Copyleft (c) 2016 Cocobug All Rights Reserved.
 
 from blessings import Terminal
-import types,string
+import types,string,traceback,sys
 
 __all__ =["testGroup","testUnit"]
 
@@ -27,8 +27,8 @@ class testGroup(object):
         self.results=[]
         self.success_text= self.t.green("success")
         self.failure_text=self.t.bright_red("failure")
-        self.warning_text=self.t.yellow("warning")
-        self.critical_text=self.t.bold_bright_red("critical")
+        self.warning_text=self.t.bright_yellow("warning")
+        self.critical_text=self.t.white_on_red("critical")
         self.verbose=verbose
         self.align=align
 
@@ -166,8 +166,8 @@ class testGroup(object):
             txt=self.warning_text
             warnings=" ({} warnings".format(str(success["warning"]))
         elif success["critical"]!=0:
-            warp=self.t.white_on_red
-            text=self.critical_text
+            wrap=self.t.white_on_red
+            txt=self.critical_text
         else:
             wrap=self.t.bright_red
             txt=self.failure_text
@@ -188,6 +188,9 @@ class testUnit(object):
         self._tests=[]
         self.name=name
         self.results=[]
+
+    def __str__(self):
+        return self.name
 
     def addTest(self,test):
         "Add a function to the test unit"
@@ -239,7 +242,7 @@ class simpleTestUnit(testUnit):
         "Mark the failure of the current test"
         self.addResult(self.currentTest(),FAILURE_STATUS,msg)
 
-    def addCritical(self,name,msg):
+    def addCritical(self,name,msg=""):
         self.addResult(name,CRITICAL_STATUS,msg)
 
     def addWarning(self,msg=""):
@@ -263,13 +266,23 @@ class simpleTestUnit(testUnit):
             for fonct in self._simpleTestList:
                 fonct()
         except testCoreOutOfTests:
-            self.addCritical("core:critical","a fatal error occured in test generation line")
+            self.criticalTraceback()
         except Exception as e:
-            self.addFailure(e)
-
+            if len(self.list_ongoing_tests)>0:
+                self.addFailure(e)
+            else:
+                self.criticalTraceback()
         return self.results
 
-
+    def criticalTraceback(self):
+        exc,funct,tb=sys.exc_info()
+        code=tb.tb_frame.f_code
+        self.addCritical("core:critical","fatal error {} line {} ({}@{})".format(exc.__name__,code.co_firstlineno,code.co_name,code.co_filename))
+        # #print(traceback.extract_stack()[0])
+        # # print(stack.name)
+        # for stack in traceback.extract_stack():
+        #     # print(dir(frame))
+        #     self.addCritical("core:critical","{} line {} ({})".format(stack.name,stack.lineno,stack.filename))
 if __name__ == '__main__':
     term=Terminal()
     mainClasses=testGroup("Main Classes",term,verbose=True,align=40)
@@ -336,6 +349,13 @@ if __name__ == '__main__':
             else:
                 self.addFailure("Supposed to fail")
 
+        def _testAnotherCustomTest(self):
+            "Please note that the order of execution is entirely dependant on dir() and you should never rely on it for the order of test"
+            self.currentTest("warning:notext")
+            self.addWarning()
+            self.currentTest("warning:custom")
+            self.addWarning("warning")
+            self.addCritical("critical:critical","very bad things happened")
     mainTest.test()
     lambdaTest.test()
 
