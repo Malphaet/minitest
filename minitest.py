@@ -30,7 +30,7 @@ class testGroup(object):
         module_sucess,module_total=0,0
 
         #print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
-        print self.prefix+"+ Executing test group "+self.pretty_group(self.name)
+        print(self.prefix+"+ Executing test group "+self.pretty_group(self.name))
         oldprefix=self.prefix
         self.prefix+="|  "
         self.results=[]
@@ -41,17 +41,17 @@ class testGroup(object):
             except:
                 sucess,total,failures=self.print_result([])
 
-            print self.pretty_subtests(test.name,sucess,total)
+            print(self.pretty_subtests(test.name,sucess,total))
 
             if sucess==total:
                 module_sucess+=1
             module_total+=1
             for failure in failures:
-                print failure
+                print(failure)
             self.results.append([self,True,""])
         self.prefix=oldprefix
 
-        print self.pretty_group_result(module_sucess,module_total)
+        print(self.pretty_group_result(module_sucess,module_total))
         #print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
         return self.results
 
