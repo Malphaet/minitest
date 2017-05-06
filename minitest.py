@@ -27,7 +27,7 @@ class testGroup(object):
         self.results=[]
         self.success_text= self.t.green("success")
         self.failure_text=self.t.bright_red("failure")
-        self.warning_text=self.t.bright_yellow("warning")
+        self.warning_text=self.t.yellow("warning")
         self.critical_text=self.t.bold_bright_red("critical")
         self.verbose=verbose
         self.align=align
@@ -87,7 +87,7 @@ class testGroup(object):
             if status==SUCCESS_STATUS:
                 list_status["success"]+=1
             elif status==WARNING_STATUS:
-                list_status["warnings"]+=1
+                list_status["warning"]+=1
             elif status==CRITICAL_STATUS:
                 list_status["critical"]+=1
             else:
@@ -162,9 +162,9 @@ class testGroup(object):
             wrap=self.t.green
             txt=self.success_text
         elif success["success"]+success["warning"]==total:
-            warp=self.t.yellow
+            wrap=self.t.yellow
             txt=self.warning_text
-            warnings=" ({} warnings".format(str(success["warnings"]))
+            warnings=" ({} warnings".format(str(success["warning"]))
         elif success["critical"]!=0:
             warp=self.t.white_on_red
             text=self.critical_text
