@@ -167,22 +167,34 @@ class testUnit(object):
 class simpleTestUnit(testUnit):
     """Very simple test function, it tries to autodetect tests and add them and batch test them,
     this is not default behavior and should not be expected from other functions
-    The very usage of this self.currentTest makes the class non embetted effect protected and non-thread-friendly"""
+    The very usage of this self.list_ongoing_tests makes the class non embetted effect protected and non-thread-friendly
+    Note that using list_ongoing_tests and addResult together can lead to unpredictable results, use addSucess and addFailure instead"""
 
     def __init__(self,name):
         super(simpleTestUnit, self).__init__(name)
         self.results=[]
-        self.currentTest=""
+        self.list_ongoing_tests=[]
         self.userTests=[]
         self._simpleTestList=[]
 
+    def currentTest(self,name=None):
+        "Get the current test"
+        if name==None:
+            try:
+                return self.list_ongoing_tests.pop()
+            except IndexError:
+                raise IndexError("No ongoing tests")
+        else:
+            return self.list_ongoing_tests.append(name)
+
+
     def addSucess(self):
         "Mark the sucess of the current test (named in the function by self.currentTest)"
-        self.addResult(self.currentTest,True,"")
+        self.addResult(self.currentTest(),True,"")
 
     def addFailure(self,msg):
         "Mark the failure of the current test"
-        self.addResult(self.currentTest,False,msg)
+        self.addResult(self.currentTest(),False,msg)
 
     def test(self):
         """User can add functions to be tested in userTests,
@@ -255,19 +267,19 @@ if __name__ == '__main__':
             super(anotherTest, self).__init__("YET ANOTHER TEST")
 
         def _testCustom(self):
-            self.currentTest="testing true"
+            self.currentTest("testing true")
             if True:
                 self.addSucess()
             else:
                 self.addFailure("True is False")
 
-            self.currentTest="additions:simple"
+            self.currentTest("additions:simple")
             if 1+3==4:
                 self.addSucess()
             else:
                 self.addFailure("1+3 != 4")
 
-            self.currentTest="error"
+            self.currentTest("error")
             if False:
                 self.addSucess()
             else:
