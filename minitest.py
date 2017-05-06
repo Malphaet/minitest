@@ -3,9 +3,17 @@
 # Copyleft (c) 2016 Cocobug All Rights Reserved.
 
 from blessings import Terminal
-import types
+import types,string
 
 __all__ =["testGroup","testUnit"]
+
+SUCESS_STATUS=1
+FAILURE_STATUS=2
+WARNING_STATUS=4
+CRITICAL_STATUS=8
+
+class testCoreOutOfTests(IndexError):
+    pass
 
 class testGroup(object):
     """TestGroup, group a number of testUnit, exec them and print the results"""
@@ -19,8 +27,11 @@ class testGroup(object):
         self.results=[]
         self.sucess_text= self.t.green("sucess")
         self.failure_text=self.t.bright_red("failure")
+        self.warning_text=self.t.bright_yellow("warning")
+        self.critical_text=self.t.bold_bright_red("critical")
         self.verbose=verbose
         self.align=align
+
 
     def addTest(self,testUnit):
         self._tests.append(testUnit)
@@ -29,7 +40,6 @@ class testGroup(object):
         "Execute all tests, some options might exist at some point"
         module_sucess,module_total=0,0
 
-        #print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
         print(self.prefix+"+ Executing test group "+self.pretty_group(self.name))
         oldprefix=self.prefix
         self.prefix+="|  "
@@ -48,11 +58,10 @@ class testGroup(object):
             module_total+=1
             for failure in failures:
                 print(failure)
-            self.results.append([self,True,""])
+            self.results.append([self,SUCESS_STATUS,""])
         self.prefix=oldprefix
 
         print(self.pretty_group_result(module_sucess,module_total))
-        #print self.prefix+"+"+"-"*(max(0,self.align+7-len(self.prefix)))
         return self.results
 
     def print_result(self,table):
@@ -109,9 +118,14 @@ class testGroup(object):
 
     def pretty_status(self,status):
         "Prettyfy the status of the test"
-        if status:
+        if status==SUCESS_STATUS:
             return self.sucess_text
-        return self.failure_text
+        elif status==FAILURE_STATUS:
+            return self.failure_text
+        elif status==WARNING_STATUS:
+            return self.warning_text
+        else:
+            return self.critical_text
 
     def pretty_group(self,name):
         "Prettify the name of the testGroup"
@@ -156,9 +170,9 @@ class testUnit(object):
         for test in self._tests:
             try:
                 test()
-                self.addResult(test,True,'')
+                self.addResult(test,SUCESS_STATUS,'')
             except Exception as e:
-                self.addResult(test,False,e)
+                self.addResult(test,FAILURE_STATUS,e)
         return self.results
 
     def addResult(self,testName,status,info):
@@ -183,18 +197,18 @@ class simpleTestUnit(testUnit):
             try:
                 return self.list_ongoing_tests.pop()
             except IndexError:
-                raise IndexError("No ongoing tests")
+                raise testCoreOutOfTests
         else:
             return self.list_ongoing_tests.append(name)
 
 
     def addSucess(self):
         "Mark the sucess of the current test (named in the function by self.currentTest)"
-        self.addResult(self.currentTest(),True,"")
+        self.addResult(self.currentTest(),SUCESS_STATUS,"")
 
     def addFailure(self,msg):
         "Mark the failure of the current test"
-        self.addResult(self.currentTest(),False,msg)
+        self.addResult(self.currentTest(),FAILURE_STATUS,msg)
 
     def test(self):
         """User can add functions to be tested in userTests,
@@ -213,6 +227,8 @@ class simpleTestUnit(testUnit):
         try:
             for fonct in self._simpleTestList:
                 fonct()
+        except testCoreOutOfTests:
+            self.addResult("core:critical",CRITICAL_STATUS,"a fatal error occured in test generation line")
         except Exception as e:
             self.addFailure(e)
 
@@ -243,9 +259,9 @@ if __name__ == '__main__':
             potatoe=[]
             try:  # You are supposed to fail this step
                 if potatoe[1]==2:
-                    self.addResult("empty_table",False,"Non empty array")
+                    self.addResult("empty_table",self.FAILURE_STATUS,"Non empty array")
             except:
-                self.addResult("empty_table",True,"")
+                self.addResult("empty_table",SUCESS_STATUS,"")
             potatoe.append([2]*2) # Not try protected, but could be if a bug was a possibility
 
             try:
@@ -253,11 +269,11 @@ if __name__ == '__main__':
                 for e in potatoe:
                     if e==3:
                         goodinit=False
-                        self.addResult("init_table",False,"Wrong elements")
+                        self.addResult("init_table",FAILURE_STATUS,"Wrong elements")
                 if goodinit:
-                    self.addResult("init_table",True,"")
+                    self.addResult("init_table",SUCESS_STATUS,"")
             except:
-                self.addResult("init_table",False,"???")
+                self.addResult("init_table",FAILURE_STATUS,"???")
 
             return self.results
 
