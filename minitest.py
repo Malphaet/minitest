@@ -223,30 +223,34 @@ class simpleTestUnit(testUnit):
         self.userTests=[]
         self._simpleTestList=[]
 
-    def currentTest(self,name=None):
-        "Get the current test"
+    def currentTest(self,name=None,nonDestructive=False):
+        """Set the current test by calling it with an argument or get it with no arguments or None (this is a malpractice and I don't care)
+        When using the nonDestructive tag don't forget to actually finish the test at some point, consider never using it"""
         if name==None:
             try:
-                return self.list_ongoing_tests.pop()
+                if nonDestructive:
+                    return self.list_ongoing_tests[-1]
+                else:
+                    return self.list_ongoing_tests.pop()
             except IndexError:
                 raise testCoreOutOfTests
         else:
             return self.list_ongoing_tests.append(name)
 
 
-    def addSuccess(self):
+    def addSuccess(self,nonDestructive=False):
         "Mark the success of the current test (named in the function by self.currentTest)"
-        self.addResult(self.currentTest(),SUCCESS_STATUS,"")
+        self.addResult(self.currentTest(nonDestructive=nonDestructive),SUCCESS_STATUS,"")
 
-    def addFailure(self,msg):
+    def addFailure(self,msg,nonDestructive=False):
         "Mark the failure of the current test"
-        self.addResult(self.currentTest(),FAILURE_STATUS,msg)
+        self.addResult(self.currentTest(nonDestructive=nonDestructive),FAILURE_STATUS,msg)
 
     def addCritical(self,name,msg=""):
         self.addResult(name,CRITICAL_STATUS,msg)
 
-    def addWarning(self,msg=""):
-        self.addResult(self.currentTest(),WARNING_STATUS,msg)
+    def addWarning(self,msg="",nonDestructive=False):
+        self.addResult(self.currentTest(nonDestructive=nonDestructive),WARNING_STATUS,msg)
 
     def test(self):
         """User can add functions to be tested in userTests,
