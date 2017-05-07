@@ -355,7 +355,9 @@ if __name__ == '__main__':
                 self.addFailure("Supposed to fail")
 
         def _testAnotherCustomTest(self):
-            "Please note that the order of execution is entirely dependant on dir() and you should never rely on it for the order of test"
+            """Please note that the order of execution is entirely dependant on dir()
+            and you should never rely on it for the order of the tests"""
+            
             self.currentTest("warning:notext")
             self.addWarning()
             self.currentTest("warning:custom")
