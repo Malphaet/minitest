@@ -25,6 +25,13 @@ class testGroup(object):
         if self.t==None:
             self.t=Terminal()
         self.results=[]
+        self.status_modules={
+            "success":0,
+            "total":0,
+            "warning":0,
+            "critical":0,
+            "failure":0
+        }
         self.success_text= self.t.green("success")
         self.failure_text=self.t.bright_red("failure")
         self.warning_text=self.t.bright_yellow("warning")
@@ -35,17 +42,12 @@ class testGroup(object):
 
     def addTest(self,testUnit):
         self._tests.append(testUnit)
+        return self
 
     def test(self):
         "Execute all tests, some options might exist at some point"
         module_success,module_total=0,0
-        status_modules={
-            "success":0,
-            "total":0,
-            "warning":0,
-            "critical":0,
-            "failure":0
-        }
+
         print(self.prefix+"+ Executing test group "+self.pretty_group(self.name))
         oldprefix=self.prefix
         self.prefix+="|  "
@@ -60,16 +62,20 @@ class testGroup(object):
             print(self.pretty_subtests(test.name,list_status,total))
 
             if list_status["success"]+list_status["warning"]==total:
-                status_modules["success"]+=1
-            status_modules["total"]+=1
+                self.status_modules["success"]+=1
+            self.status_modules["total"]+=1
             for log in log_results:
                 print(log)
             self.results.append([self,SUCCESS_STATUS,""])
         self.prefix=oldprefix
 
-        print(self.pretty_group_result(status_modules,status_modules["total"]))
+        print(self.pretty_group_result(self.status_modules,self.status_modules["total"]))
         return self.results
 
+    def get_status(self):
+        "Get the status of every module, if no test was run, should return an empty dict"
+        return self.status_modules
+        
     def print_result(self,table):
         "Get the array of success/failures and print according to the options (still none yet)"
         total=len(table)
@@ -164,7 +170,7 @@ class testGroup(object):
         elif success["success"]+success["warning"]==total:
             wrap=self.t.yellow
             txt=self.warning_text
-            warnings=" ({} warnings".format(str(success["warning"]))
+            warnings=" ({} warnings)".format(str(success["warning"]))
         elif success["critical"]!=0:
             wrap=self.t.white_on_red
             txt=self.critical_text
@@ -195,6 +201,7 @@ class testUnit(object):
     def addTest(self,test):
         "Add a function to the test unit"
         self._tests.append(test)
+        return self
 
     def test(self):
         "Execute all tests"
@@ -354,10 +361,15 @@ if __name__ == '__main__':
             else:
                 self.addFailure("Supposed to fail")
 
+            self.currentTest("overload")
+            self.addSuccess()
+            self.addFailure("Supposed to overload")
+
+
         def _testAnotherCustomTest(self):
             """Please note that the order of execution is entirely dependant on dir()
             and you should never rely on it for the order of the tests"""
-            
+
             self.currentTest("warning:notext")
             self.addWarning()
             self.currentTest("warning:custom")
