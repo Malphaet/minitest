@@ -1,8 +1,33 @@
 #!/usr/bin/env python
 
 # Copyleft (c) 2016 Cocobug All Rights Reserved.
+try:
+    from blessings import Terminal
+except:
+    class Terminal():
+        "Just output empty strings"
+        def __init__(self):
+            pass
+        def __repr__(self):
+            return ""
+        def __eq__(self,ot):
+            return False
+        def __str__(self):
+            return ""
+        def __getattr__(self,attr):
+            return Color()
 
-from blessings import Terminal
+    class Color():
+        def __init__(self):
+            pass
+        def __str__(self):
+            return ""
+        def __call__(self,attr):
+            return attr
+        def __getattr__(self,attr):
+            return attr
+
+
 import types,string,traceback,sys
 
 __all__ =["testGroup","testUnit"]
@@ -22,6 +47,7 @@ class testGroup(object):
         self.name=name
         self.t=terminal
         self.prefix=prefix
+        (self.t)
         if self.t==None:
             self.t=Terminal()
         self.results=[]
@@ -75,7 +101,7 @@ class testGroup(object):
     def get_status(self):
         "Get the status of every module, if no test was run, should return an empty dict"
         return self.status_modules
-        
+
     def print_result(self,table):
         "Get the array of success/failures and print according to the options (still none yet)"
         total=len(table)
