@@ -82,7 +82,11 @@ class testGroup(object):
         for test in self._tests:
             try:
                 list_status,total,log_results=self.print_result(test.test())
-            except:
+            except Exception as e:
+                print(self.t.bright_red("[ERROR] An unhandled error occured during the execution of the tests"))
+                raise(e)
+                # for l in e:
+                #     print(l)
                 list_status,total,log_results=self.print_result([])
 
             print(self.pretty_subtests(test.name,list_status,total))
@@ -220,6 +224,7 @@ class testUnit(object):
         self._tests=[]
         self.name=name
         self.results=[]
+        self.verbose=False
 
     def __str__(self):
         return self.name
@@ -306,10 +311,14 @@ class simpleTestUnit(testUnit):
             self.criticalTraceback()
         except Exception as e:
             if len(self.list_ongoing_tests)>0:
-                self.addFailure(e)
+                if self.verbose==False:
+                    self.addFailure(e)
+                else:
+                    raise e
             else:
                 #self.criticalTraceback() #This is an arguable choice
                 self.addResult("minitest.py:error",CRITICAL_STATUS,e)
+
         return self.results
 
     def criticalTraceback(self):
